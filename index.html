@@ -1,0 +1,147 @@
+<!DOCTYPE html><html>
+<head>
+<meta charset="UTF-8">
+<title>Fantasy Exploration Game</title>
+<style>
+body{margin:0;background:#0f172a;color:white;font-family:sans-serif;overflow:hidden}
+#ui{position:fixed;top:10px;left:10px;background:rgba(0,0,0,.5);padding:10px;border-radius:10px}
+canvas{display:block}
+button{margin-top:5px}/* Mobile controls */ #controls{position:fixed;bottom:20px;left:20px} .ctrl{width:60px;height:60px;border-radius:50%;border:none;background:rgba(255,255,255,.25);color:white;font-size:20px;margin:5px} #attackBtn{position:fixed;bottom:30px;right:30px;width:80px;height:80px;border-radius:50%;border:none;background:rgba(255,80,80,.7);color:white;font-size:18px} </style>
+
+</head>
+<body>
+<div id="ui">
+<div>Health: <span id="health">100</span></div>
+<div>Hunger: <span id="hunger">100</span></div>
+<div>Thirst: <span id="thirst">100</span></div>
+<div>Inventory: <span id="inv"></span></div>
+<button onclick="eat()">Eat</button>
+<button onclick="drink()">Drink</button>
+<button onclick="craftClothes()">Craft Clothes</button>
+<button onclick="craftTool()">Craft Tool</button>
+</div><canvas id="game"></canvas>
+
+<!-- Mobile movement controls --><div id="controls">
+<div>
+<button class="ctrl" ontouchstart="keys['w']=true" ontouchend="keys['w']=false">↑</button>
+</div>
+<div>
+<button class="ctrl" ontouchstart="keys['a']=true" ontouchend="keys['a']=false">←</button>
+<button class="ctrl" ontouchstart="keys['s']=true" ontouchend="keys['s']=false">↓</button>
+<button class="ctrl" ontouchstart="keys['d']=true" ontouchend="keys['d']=false">→</button>
+</div>
+</div><button id="attackBtn" ontouchstart="attack()">Attack</button>
+
+<script>
+const canvas=document.getElementById('game')
+const ctx=canvas.getContext('2d')
+canvas.width=window.innerWidth
+canvas.height=window.innerHeight
+
+let player={x:200,y:200,size:20,health:100,hunger:100,thirst:100}
+let inventory={food:1,water:1,fiber:0,claw:0}
+
+let enemies=[
+{x:400,y:200,type:'plant',hp:30},
+{x:600,y:300,type:'alien',hp:40}
+]
+
+let resources=[
+{x:300,y:400,type:'fiber'},
+{x:500,y:150,type:'food'},
+{x:700,y:250,type:'water'}
+]
+
+const keys={}
+
+document.addEventListener('keydown',e=>keys[e.key]=true)
+document.addEventListener('keyup',e=>keys[e.key]=false)
+
+document.addEventListener('click',attack)
+
+function attack(){
+ enemies.forEach(e=>{
+  const d=Math.hypot(player.x-e.x,player.y-e.y)
+  if(d<50){
+   e.hp-=10
+   if(e.hp<=0){
+    if(e.type==='plant')inventory.fiber++
+    if(e.type==='alien')inventory.claw++
+   }
+  }
+ })
+}
+
+function eat(){if(inventory.food>0){inventory.food--;player.hunger=100}}
+function drink(){if(inventory.water>0){inventory.water--;player.thirst=100}}
+
+function craftClothes(){
+ if(inventory.fiber>=3){
+  inventory.fiber-=3
+  alert('You crafted fantasy clothes!')
+ }
+}
+
+function craftTool(){
+ if(inventory.claw>=1 && inventory.fiber>=1){
+  inventory.claw--;inventory.fiber--
+  alert('You crafted a new tool!')
+ }
+}
+
+function update(){
+ if(keys['w'])player.y-=3
+ if(keys['s'])player.y+=3
+ if(keys['a'])player.x-=3
+ if(keys['d'])player.x+=3
+
+ resources.forEach(r=>{
+  const d=Math.hypot(player.x-r.x,player.y-r.y)
+  if(d<25){
+   inventory[r.type]++
+   r.x=Math.random()*canvas.width
+   r.y=Math.random()*canvas.height
+  }
+ })
+
+ player.hunger-=0.01
+ player.thirst-=0.02
+ if(player.hunger<=0||player.thirst<=0)player.health-=0.05
+
+ document.getElementById('health').textContent=Math.floor(player.health)
+ document.getElementById('hunger').textContent=Math.floor(player.hunger)
+ document.getElementById('thirst').textContent=Math.floor(player.thirst)
+ document.getElementById('inv').textContent=JSON.stringify(inventory)
+}
+
+function draw(){
+ ctx.clearRect(0,0,canvas.width,canvas.height)
+
+ ctx.fillStyle='pink'
+ ctx.fillRect(player.x-player.size/2,player.y-player.size/2,player.size,player.size)
+
+ enemies=enemies.filter(e=>e.hp>0)
+ enemies.forEach(e=>{
+  ctx.fillStyle=e.type==='plant'?'green':'purple'
+  ctx.fillRect(e.x-15,e.y-15,30,30)
+ })
+
+ resources.forEach(r=>{
+  if(r.type==='fiber')ctx.fillStyle='lightgreen'
+  if(r.type==='food')ctx.fillStyle='orange'
+  if(r.type==='water')ctx.fillStyle='cyan'
+  ctx.beginPath()
+  ctx.arc(r.x,r.y,10,0,Math.PI*2)
+  ctx.fill()
+ })
+}
+
+function gameLoop(){
+ update()
+ draw()
+ requestAnimationFrame(gameLoop)
+}
+
+gameLoop()
+</script></body>
+</html>
